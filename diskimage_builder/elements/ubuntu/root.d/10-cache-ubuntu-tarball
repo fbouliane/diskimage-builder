@@ -19,7 +19,7 @@ SUFFIX="-root"
 [[ $DIB_RELEASE =~ (artful|bionic) ]] && SUFFIX=""
 BASE_IMAGE_FILE=${BASE_IMAGE_FILE:-$DIB_RELEASE-server-cloudimg-${ARCH}${SUFFIX}.tar.gz}
 
-SHA256SUMS=${SHA256SUMS:-https://${DIB_CLOUD_IMAGES##http?(s)://}/$DIB_RELEASE/current/SHA256SUMS}
+SHA256SUMS=${SHA256SUMS:-https://${DIB_CLOUD_IMAGES##http?(s)://}/$DIB_RELEASE/${DIB_PIN_UBUNTU_BUILD_VERSION}/SHA256SUMS}
 CACHED_FILE=$DIB_IMAGE_CACHE/$BASE_IMAGE_FILE
 CACHED_FILE_LOCK=$DIB_LOCKFILES/$BASE_IMAGE_FILE.lock
 CACHED_SUMS=$DIB_IMAGE_CACHE/SHA256SUMS.ubuntu.$DIB_RELEASE.$ARCH
@@ -31,7 +31,7 @@ function get_ubuntu_tarball() {
         echo "Fetching Base Image"
         $TMP_HOOKS_PATH/bin/cache-url $SHA256SUMS $CACHED_SUMS
         $TMP_HOOKS_PATH/bin/cache-url \
-            $DIB_CLOUD_IMAGES/$DIB_RELEASE/current/$BASE_IMAGE_FILE $CACHED_FILE
+            $DIB_CLOUD_IMAGES/$DIB_RELEASE/${DIB_PIN_UBUNTU_BUILD_VERSION}/$BASE_IMAGE_FILE $CACHED_FILE
         pushd $DIB_IMAGE_CACHE
         if ! grep "$BASE_IMAGE_FILE" $CACHED_SUMS | sha256sum --check - ; then
             # It is likely that an upstream http(s) proxy has given us a skewed
@@ -43,7 +43,7 @@ function get_ubuntu_tarball() {
             $TMP_HOOKS_PATH/bin/cache-url -f $SHA256SUMS $CACHED_SUMS
             if ! grep "$BASE_IMAGE_FILE" $CACHED_SUMS | sha256sum --check - ; then
                 $TMP_HOOKS_PATH/bin/cache-url -f \
-                    $DIB_CLOUD_IMAGES/$DIB_RELEASE/current/$BASE_IMAGE_FILE $CACHED_FILE
+                    $DIB_CLOUD_IMAGES/$DIB_RELEASE/${DIB_PIN_UBUNTU_BUILD_VERSION}/$BASE_IMAGE_FILE $CACHED_FILE
                 grep "$BASE_IMAGE_FILE" $CACHED_SUMS | sha256sum --check -
             fi
         fi

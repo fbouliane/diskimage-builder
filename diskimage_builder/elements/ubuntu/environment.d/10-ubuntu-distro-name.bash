@@ -1,2 +1,5 @@
 export DISTRO_NAME=ubuntu
 export DIB_RELEASE=${DIB_RELEASE:-xenial}
+
+export DIB_PIN_UBUNTU_BUILD_VERSION=${DIB_PIN_UBUNTU_BUILD_VERSION:-current}
+
