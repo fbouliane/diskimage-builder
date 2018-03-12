@@ -14,7 +14,11 @@ shopt -s extglob
 
 DIB_CLOUD_IMAGES=${DIB_CLOUD_IMAGES:-http://cloud-images.ubuntu.com}
 DIB_RELEASE=${DIB_RELEASE:-trusty}
-BASE_IMAGE_FILE=${BASE_IMAGE_FILE:-$DIB_RELEASE-server-cloudimg-$ARCH-root.tar.gz}
+
+SUFFIX="-root"
+[[ $DIB_RELEASE =~ (artful|bionic) ]] && SUFFIX=""
+BASE_IMAGE_FILE=${BASE_IMAGE_FILE:-$DIB_RELEASE-server-cloudimg-${ARCH}${SUFFIX}.tar.gz}
+
 SHA256SUMS=${SHA256SUMS:-https://${DIB_CLOUD_IMAGES##http?(s)://}/$DIB_RELEASE/current/SHA256SUMS}
 CACHED_FILE=$DIB_IMAGE_CACHE/$BASE_IMAGE_FILE
 CACHED_FILE_LOCK=$DIB_LOCKFILES/$BASE_IMAGE_FILE.lock
@@ -45,9 +49,33 @@ function get_ubuntu_tarball() {
         fi
         popd
     fi
-    # Extract the base image (use --numeric-owner to avoid UID/GID mismatch between
-    # image tarball and host OS e.g. when building Ubuntu image on an openSUSE host)
-    sudo tar -C $TARGET_ROOT --numeric-owner -xzf $DIB_IMAGE_CACHE/$BASE_IMAGE_FILE
+
+    if [ -n "$SUFFIX" ]; then
+      echo "extracting image with tar"
+      # Extract the base image (use --numeric-owner to avoid UID/GID mismatch between
+      # image tarball and host OS e.g. when building Ubuntu image on an openSUSE host)
+      sudo tar -C $TARGET_ROOT --numeric-owner -xzf $DIB_IMAGE_CACHE/$BASE_IMAGE_FILE
+    else
+      echo "converting squashfs to tar.gz"
+
+      set -x
+      extracted=$(mktemp -d)
+      tmp_mount=$(mktemp -d)
+
+      sudo tar -C ${extracted} --numeric-owner -xzf $DIB_IMAGE_CACHE/$BASE_IMAGE_FILE
+
+      sudo mount -o loop -t auto $extracted/$DIB_RELEASE-server-cloudimg-${ARCH}.img ${tmp_mount}
+      pushd $PWD 2>/dev/null
+      cd ${tmp_mount}
+      sudo tar c . | sudo tar x -C ${TARGET_ROOT} -k --numeric-owner 2>/dev/null
+      popd
+      # Clean up
+      sudo umount ${tmp_mount}
+
+      rm -rf $extracted ${tmp_mount}
+
+      set +x
+    fi
 }
 
 (
